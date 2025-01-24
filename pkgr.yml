@@ -1,0 +1,24 @@
+Version: 1
+
+Packages:
+  - tidyverse
+  - flextable
+  - officer
+  - cowplot
+  - ggrepel
+  - broom
+  - lsmeans
+  - lmerTest
+  - lme4
+  - pbkrtest
+  - plyr
+  - ggthemes
+  - broom.mixed
+
+Repos:
+  - MPN: https://mpn.metworx.com/snapshots/stable/2023-06-29
+      
+Lockfile:
+    Type: renv
+
+Rpath: ${R_EXE_4_1}
