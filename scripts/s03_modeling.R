@@ -23,7 +23,7 @@ library(ggthemes)
 
 # add caption
 time<-as.character(Sys.time())
-script_name <- "s07_modeling.R"
+script_name <- "s03_modeling.R"
 caption  <-paste0("Datasource: r-script:", script_name,", ", time, sep="")
 
 # ggplot themes
@@ -39,6 +39,7 @@ d0.dof <- read.csv("data/derived/qtpk_dofetilide.csv")
 d0.ver <- read.csv("data/derived/qtpk_verapamil.csv") 
 
 ############# dofetilide #############
+
 ## Data preparations
 exp.resp.dof <- d0.dof %>%
   select(USUBJID, TIME, QTcF.CFB, CONC, QTcF.mB, QTcF.B, TREAT, ACTIVE) %>%
@@ -46,7 +47,7 @@ exp.resp.dof <- d0.dof %>%
   mutate(TIME=as.factor(TIME)) %>% 
   filter(!is.na(CONC)) %>% 
   filter(!is.na(QTcF.CFB)) %>%
-## Ensure a dichotomous variable
+  ## Ensure a dichotomous variable
   mutate(ACTIVE=as.factor(ACTIVE))
 
 ## Fitting prespecified model
@@ -118,12 +119,6 @@ tab1 <- Par.tab.dof %>% flextable() %>%
   autofit()
 tab1
 
-## Print table in a word document
-doc1 <- read_docx() %>% 
-  body_add_flextable(value = tab1)
-
-print(doc1, "results/table_dof_param.docx")
-
 ## Goodnes of fit plots------------------------------------------------------------------------------------------
 
 GOF.dat<-augment(Pre.spec.model.dof) %>%
@@ -180,7 +175,12 @@ RES.TIME<-ggplot(GOF.dat, aes(x=TIME, y= Sd.rediduals)) +
   scale_color_gdocs() +
   theme(legend.position="none")
 
-RES.ACTIVE<-ggplot(GOF.dat, aes(x=ACTIVE, y= Sd.rediduals)) + 
+# add ACTIVE label to indicate Placebo and Drug on the plot
+GOF.dat$ACTIVE_label <- " "
+GOF.dat$ACTIVE_label[GOF.dat$ACTIVE==0] <- "Placebo\n(ACTIVE=0)"
+GOF.dat$ACTIVE_label[GOF.dat$ACTIVE==1] <- "Drug\n(ACTIVE=1)"
+
+RES.ACTIVE<-ggplot(GOF.dat, aes(x=ACTIVE_label, y= Sd.rediduals)) + 
   geom_boxplot(notch = TRUE, outlier.color="white") +
   geom_abline(slope=0, col="#f44336") +
   labs(x="Active treatment",
@@ -194,7 +194,6 @@ allplot <- plot_grid(IPRED.DV, QQ.plot, RES.CONC, RES.Base.QTcF, RES.TIME, RES.A
                      ncol=3, align = "hv", labels="auto", hjust = 0.1)
 
 allplot
-ggsave("results/Prespecified_model_GOF_dof.png", width = 10, height = 6)
 
 ## Specify the concentrations of interest - this can be geo mean Cmax in this example
 
@@ -215,10 +214,18 @@ Cmax.dof <- d0.dof %>%
             GCV      = 100 * sqrt(exp(var(log(Cmax.i))) - 1),
             n.id     = n_distinct(USUBJID))
 
-## Specify the concentrations of interest (here, it is geomean of active arm)
+## Specify the concentrations of interest (here, it is geometric mean of active arm)
 Cmax.ref.grid.dof <- ref.grid(Pre.spec.model.dof, 
                           at=list(CONC=c(0,Cmax.dof$GMEAN)), 
                           ACTIVE=c(0,1)) 
+
+# for user-defined concentration of interest (for example, derived from a popPK model, rather than using geometric mean Cmax), 
+# one can use the following example code (later in the code, Cmax.ref.grid.dof.user.coi should be used instead of Cmax.ref.grid.dof):
+
+user.coi <- 3.1 # define concentration of interest here
+Cmax.ref.grid.dof.user.coi <- ref.grid(Pre.spec.model.dof, 
+                              at=list(CONC=c(0,user.coi)),  # concentration of interest is used here
+                              ACTIVE=c(0,1)) 
 
 ## Generate LS-Means estimated of baseline adjusted QTcF for active and placebo
 ## by CONC, predictions are averaged over the levels of TIME. 
@@ -413,12 +420,6 @@ tab2 <- Par.tab.ver %>% flextable() %>%
   autofit()
 tab2
 
-## Print table in a word document
-doc2 <- read_docx() %>% 
-  body_add_flextable(value = tab2)
-
-print(doc2, "results/table_ver_param.docx")
-
 ## Goodnes of fit plots------------------------------------------------------------------------------------------
 
 GOF.dat<-augment(Pre.spec.model.ver) %>%
@@ -475,7 +476,12 @@ RES.TIME<-ggplot(GOF.dat, aes(x=TIME, y= Sd.rediduals)) +
   scale_color_gdocs() +
   theme(legend.position="none")
 
-RES.ACTIVE<-ggplot(GOF.dat, aes(x=ACTIVE, y= Sd.rediduals)) + 
+# add ACTIVE label to indicate Placebo and Drug on the plot
+GOF.dat$ACTIVE_label <- " "
+GOF.dat$ACTIVE_label[GOF.dat$ACTIVE==0] <- "Placebo\n(ACTIVE=0)"
+GOF.dat$ACTIVE_label[GOF.dat$ACTIVE==1] <- "Drug\n(ACTIVE=1)"
+
+RES.ACTIVE<-ggplot(GOF.dat, aes(x=ACTIVE_label, y= Sd.rediduals)) + 
   geom_boxplot(notch = TRUE, outlier.color="white") +
   geom_abline(slope=0, col="#f44336") +
   labs(x="Active treatment",
@@ -489,7 +495,6 @@ allplot.ver <- plot_grid(IPRED.DV, QQ.plot, RES.CONC, RES.Base.QTcF, RES.TIME, R
                      ncol=3, align = "hv", labels="auto", hjust = 0.1)
 
 allplot.ver
-ggsave("results/Prespecified_model_GOF_ver.png", width = 10, height = 6)
 
 ## Specify the concentrations of interest - this can be geo mean Cmax in this example
 
@@ -570,21 +575,21 @@ exp.resp.ver$ACTIVE <- factor(exp.resp.ver$ACTIVE, levels = c(1,0))
 
 Pred.plot.dQTcF.bin.ver <-ggplot()+
   # scatter of observed data
-  geom_point(data=exp.resp.ver, aes(x=conc2, y=QTcF.CFB, col=as.factor(ACTIVE)), alpha=0.2) +
-  geom_smooth(data=exp.resp.ver, aes(x=conc2, y=QTcF.CFB), method = "loess", color = "red", se = FALSE, linetype = "dashed") +
+  geom_point(data=exp.resp.ver, aes(x=conc2*1000, y=QTcF.CFB, col=as.factor(ACTIVE)), alpha=0.2) +
+  geom_smooth(data=exp.resp.ver, aes(x=conc2*1000, y=QTcF.CFB), method = "loess", color = "red", se = FALSE, linetype = "dashed") +
   # model-predictions
   geom_ribbon(data=tmp3.ver, 
-              aes(x=conc2, ymin= lower.CL, ymax=upper.CL), fill="black", alpha=0.1)+
-  geom_line(data=tmp3.ver,  aes(x=conc2, y=lsmean), size=1, col="black")+
-  labs(title="Verapamil",x="Drug concentration (ug/mL)", y=delta.QTcF.label)+
+              aes(x=conc2*1000, ymin= lower.CL, ymax=upper.CL), fill="black", alpha=0.1)+
+  geom_line(data=tmp3.ver,  aes(x=conc2*1000, y=lsmean), size=1, col="black")+
+  labs(title="Verapamil",x="Drug concentration (ng/mL)", y=delta.QTcF.label)+
   # add bins of observed data
-  geom_pointrange(data=Bin.qtpk.ver, aes(x=CONC_median,
+  geom_pointrange(data=Bin.qtpk.ver, aes(x=CONC_median*1000,
                                          ymax=DQTCF_UCL,
                                          ymin= DQTCF_LCL,
                                          y=DQTCF_mean,
                                          col=ACTIVE)) +
-  geom_point(data=plot.bins.ver, aes(y=y.plot, x=cutpoints), shape="|", size=2 ) +
-  geom_line(data=plot.bins.ver, aes(y=y.plot, x=cutpoints), size=0.25) +
+  geom_point(data=plot.bins.ver, aes(y=y.plot, x=cutpoints*1000), shape="|", size=2 ) +
+  geom_line(data=plot.bins.ver, aes(y=y.plot, x=cutpoints*1000), size=0.25) +
   scale_color_gdocs()+
   theme(legend.position="none")
 Pred.plot.dQTcF.bin.ver
@@ -592,12 +597,15 @@ Pred.plot.dQTcF.bin.ver
 ## summary table with dofetilide and verapamil ddQTcF estimates and 90% CI
 # rename verapamin variables to match dofetilides
 Cmax.ddQTcF.ver <- Cmax.ddQTcF.ver %>% rename(CONC=conc2)
+# change the units for verapamil back to ng/mL
+Cmax.ddQTcF.ver$CONC <- Cmax.ddQTcF.ver$CONC*1000 
+
 summ.ddqtcf <- rbind(Cmax.ddQTcF.dof,Cmax.ddQTcF.ver)
 summ.ddqtcf[, 'Treatment'] <- c("Dofetilide (500 ug)","Verapamil (120 mg)")
 
 summ.ddqtcf <- summ.ddqtcf %>%
   relocate(Treatment,CONC,estimate,lower.CL,upper.CL)
-# save as flextable
+# output as flextable
 tab3 <- summ.ddqtcf %>%
   flextable() %>%  
   set_header_labels(CONC     = "Concentration", 
@@ -626,24 +634,16 @@ tab3 <- summ.ddqtcf %>%
   autofit()
 tab3
 
-## Print table in a word document
-doc3 <- read_docx() %>% 
-  body_add_flextable(value = tab3)
-
-print(doc3, "results/table_dof_ver_predictions.docx")
-
 # plot with dofetilide and verapamil exposure-response
 allplot.er <- plot_grid(Pred.plot.dQTcF.bin.dof, Pred.plot.dQTcF.bin.ver, 
                          ncol=2, align = "hv", labels="auto", hjust = 0.1)
 
 allplot.er
-ggsave("results/exp_resp_plot.png", width = 12, height = 6)
-
 # extract model estimates for whole concentration range
 
-tmp1.ver <- ref.grid(Pre.spec.model.ver,                                                   # Model 
+tmp1.ver <- ref.grid(Pre.spec.model.ver,                                                         # Model 
                      at=list(conc2=seq(from=0,to=max(exp.resp.ver$conc2),length.out = 200)),     # Concentration to make prediction
-                     ACTIVE=c(0,1))                                                             # Placebo and active
+                     ACTIVE=c(0,1))                                                              # Placebo and active
 
 tmp2.ver<-lsmeans::lsmeans(tmp1.ver, c("conc2", "ACTIVE"))
 tmp3.ver<-summary(tmp2.ver, level=0.9) %>% filter(ACTIVE==1, conc2!=0)
@@ -666,10 +666,10 @@ tmp6.ver<- tmp5.ver %>%
 Pred.plot.ddQTcF.bin.ver <-ggplot()+
   # model-prediction
   geom_ribbon(data=tmp6.ver, 
-              aes(x=conc2, ymin= lower.CL, ymax=upper.CL), fill="black", alpha=0.1)+
-  geom_line(data=tmp6.ver,  aes(x=conc2, y=estimate), size=1, col="black")+
+              aes(x=conc2*1000, ymin= lower.CL, ymax=upper.CL), fill="black", alpha=0.1)+
+  geom_line(data=tmp6.ver,  aes(x=conc2*1000, y=estimate), size=1, col="black")+
   geom_hline(aes(yintercept=10), linetype=2)+
-  labs(title="Verapamil",x="Drug concentration (ug/mL)", y=deltadelta.QTcF.label) +
+  labs(title="Verapamil",x="Drug concentration (ng/mL)", y=deltadelta.QTcF.label) +
   geom_segment(data=Cmax.ddQTcF.ver[1,], 
                aes(x=CONC, xend=CONC,
                    y=-1, yend=upper.CL), col= "#f44336", size=1)+
@@ -691,4 +691,3 @@ allplot.ddqt.er <- plot_grid(Pred.plot.ddQTcF.bin.dof, Pred.plot.ddQTcF.bin.ver,
                         ncol=2, align = "hv", labels="auto", hjust = 0.1)
 
 allplot.ddqt.er
-ggsave("results/exp_resp_plot_ddqtcf.png", width = 12, height = 6)

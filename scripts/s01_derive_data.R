@@ -88,6 +88,7 @@ qtpk_verapamil <- qtpk %>%
   #select relevant columns
   select(USUBJID,TREAT,ACTIVE,TIME,QTcF,QTcB,QTcF.CFB,HR.CFB,ddHR,ddQTcF,CONC,QTm,RRm,QTcF.mB,QTcF.B)
 
-## save data
+## save data - here, the data is saved in the "data/derived" subfolder
 write.csv(qtpk_dofetilide, "data/derived/qtpk_dofetilide.csv")
 write.csv(qtpk_verapamil, "data/derived/qtpk_verapamil.csv")
+
