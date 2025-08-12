@@ -1,7 +1,7 @@
 # C-QTc-hands-on-tutorial
 
 This set of R scripts is intended for a complete Concentration-QT (C-QTc) modeling analysis and it complements the "Practical guide to concentration-QTc modeling: a hands-on tutorial", published in Journal of Pharmacokinetics and Pharmacodynamic:
-Parkinson, J., Dota, C. & Rekić, D. Practical guide to concentration-QTc modeling: a hands-on tutorial. J Pharmacokinet Pharmacodyn 52, 43 (2025). https://doi.org/10.1007/s10928-025-09981-8 
+Parkinson, J., Dota, C. & Rekić, D. J Pharmacokinet Pharmacodyn 52, 43 (2025). https://doi.org/10.1007/s10928-025-09981-8 
 
 Previously published data is used in this assessment, and those are available from Johannesen et al 2014 and can be downloaded from physionet website: https://physionet.org/content/ecgrdvq/1.0.0/.
 <br>
